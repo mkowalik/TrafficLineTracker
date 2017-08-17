@@ -1,6 +1,7 @@
 import cv2
 from perspective import PerspectiveRemover
 import numpy as np
+import re
 
 def process(config):
 
@@ -20,6 +21,10 @@ def process(config):
     print removed_perspective_image.shape
     
     cv2.imshow("img", removed_perspective_image)
+
+    m = re.split(".jpg", path)
+
+    cv2.imwrite(m[0] + '_noPersp.jpg', removed_perspective_image)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
