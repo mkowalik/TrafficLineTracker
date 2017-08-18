@@ -43,7 +43,7 @@ class PerspectiveRemover:
                 x = y * np.tan(-self.alpha + (float(u)/self.width) * 2.0 * self.alpha) + self.width/2
 
 
-                if (y_index<out_height and y_index>=0 and int(x)<out_width):
+                if y_index < out_height and y_index >= 0 and int(x) < out_width:
                     out[int(y_index)][int(x)] = img[self.height - v-1][u]
 
             # print angle, (angle/6.28) * 350, y
@@ -66,11 +66,9 @@ class PerspectiveRemover:
 
             for x in range(1, out_width):
 
-
-
                 u = ((np.arctan(float(x - self.width/2)/y) + self.alpha) / (2. * self.alpha)) * self.width
 
-                if (v_index>=0 and v_index < self.height and u>=0 and u<self.width):
+                if v_index >= 0 and v_index < self.height and u >= 0 and u < self.width:
                     out[y_index][x] = img[v_index][int(u)]
 
         return out
