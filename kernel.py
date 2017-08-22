@@ -3,7 +3,7 @@ import numpy as np
 
 class OneDimKernel:
 
-    def __init__(self, config):\
+    def __init__(self, config):
 
         self.lineWidth = config.getint('Low Level Kernel Section', 'kernel.width')
         self.kernelSize = 2*self.lineWidth

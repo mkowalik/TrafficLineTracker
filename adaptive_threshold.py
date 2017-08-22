@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 
+
 class AdaptiveThreshold:
 
     def __init__(self, config):
@@ -9,7 +10,7 @@ class AdaptiveThreshold:
         self.dilation_iterations = config.getint('Adaptive Threshold Section', 'threshold.dilation_iterations')
         self.opening_iterations = config.getint('Adaptive Threshold Section', 'threshold.opening_iterations')
 
-    def proceessMorphological(self, img, dilate=1, opening=1, kernel=np.array([[0, 1, 0], [0, 1, 0], [0, 1, 0]], dtype=np.uint8)):
+    def proceessMorphological(self, img, dilate=1, opening=1, kernel=np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]], dtype=np.uint8)): # TODO move morphological operations to seperate file
 
         out = np.copy(img)
 

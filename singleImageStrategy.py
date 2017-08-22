@@ -4,41 +4,53 @@ from kernel import OneDimKernel
 import numpy as np
 import re
 from adaptive_threshold import AdaptiveThreshold
+from splines_maker import SplinesMaker
 
 def process(config):
 
+    lineWidth = config.getint('Low Level Kernel Section', 'kernel.width')
+
     path = config.get('Single Image Processing Section', 'image.path')
+    prefix = config.get('Single Image Processing Section', 'image.prefix')
+    full_path = prefix+path
 
-    h = config.getfloat('Single Image Processing Section', 'image.h')
-    h_factor = config.getfloat('Single Image Processing Section', 'image.h_factor')
-    theta = (config.getfloat('Single Image Processing Section', 'image.theta_deg')/360.) * 2.*np.pi
-    alpha = (config.getfloat('Single Image Processing Section', 'image.alpha_deg')/360.) * 2.*np.pi
-    beta = (config.getfloat('Single Image Processing Section', 'image.beta_deg')/360.) * 2.*np.pi
+    img = cv2.imread(full_path, 0)
 
-    img = cv2.imread(path, 0)
-
-    pr = PerspectiveRemover(h, h_factor, theta, alpha, beta, img.shape[0], img.shape[1])
+    pr = PerspectiveRemover(config, img.shape[0], img.shape[1], img.shape[0] * 2, img.shape[1])
     k  = OneDimKernel(config)
-
-    removed_perspective_image = pr.transformItoW(img, img.shape[0] * 2, img.shape[1])
-    # kernelised_gold = k.kerneliseGOLD(removed_perspective_image)
-    kernelised_huang = k.kerneliseHuang(removed_perspective_image)
-
-    cv2.imshow("imgHuang", kernelised_huang)
-
     at = AdaptiveThreshold(config)
-    dil = at.proceessMorphological(kernelised_huang)
+    sm = SplinesMaker(config)
 
-    cv2.imshow("dil", dil)
+    removed_perspective_image = pr.transformItoW(img)
+    # kernelised_huang = k.kerneliseGOLD(removed_perspective_image)
+    kernelised_huang = k.kerneliseHuang(removed_perspective_image)
+    dil = at.proceessMorphological(kernelised_huang)
     thre = at.processThreshold(dil)
 
-    cv2.imshow("thre", thre)
+    border_mask = pr.getBorderMask(thre, lineWidth, 1, 0)
+    border_mask_dil = cv2.erode(border_mask, kernel=np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]], dtype=np.uint8), iterations=6)
+
+    thre = thre*border_mask_dil
+
+    # for v in range(border_mask_dil.shape[0]):
+    #     for u in range(border_mask_dil.shape[1]):
+    #         if (border_mask_dil[v][u]):
+    #             thre[v][u] = 127
+
+    max_img = sm.prepare_max_list(thre)
+    cv2.imshow("max", max_img*255)
+
+    sm.make_splines(thre)  #TODO mozna zrobic test jak dziala thre a jak dziala dil
 
 
 
+    # cv2.imshow("imgHuang", kernelised_huang)
     cv2.imshow("before", removed_perspective_image)
+    cv2.imshow("dil", dil)
+    cv2.imshow("thre", thre)
+    cv2.imshow("directions", sm.get_visualisation_of_directions(thre))
 
-    m = re.split(".jpg", path)
+    m = re.split(".jpg", full_path)
     cv2.imwrite(m[0] + '_noPersp.jpg', removed_perspective_image)
     cv2.imwrite(m[0] + '_filtered.jpg', kernelised_huang)
     cv2.imwrite(m[0] + '_dil.jpg', dil)
