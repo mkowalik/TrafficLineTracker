@@ -38,23 +38,24 @@ def process(config):
     #             thre[v][u] = 127
 
     max_img = sm.prepare_max_list(thre)
-    cv2.imshow("max", max_img*255)
 
     sm.make_splines(thre)  #TODO mozna zrobic test jak dziala thre a jak dziala dil
 
-
-
     # cv2.imshow("imgHuang", kernelised_huang)
+    cv2.imshow("max", max_img*255)
     cv2.imshow("before", removed_perspective_image)
     cv2.imshow("dil", dil)
     cv2.imshow("thre", thre)
-    cv2.imshow("directions", sm.get_visualisation_of_directions(thre))
+    cv2.imshow("directions", sm.visualise_directions(thre))
+    cv2.imshow('splines', sm.visualise_splines_models(thre))
 
     m = re.split(".jpg", full_path)
     cv2.imwrite(m[0] + '_noPersp.jpg', removed_perspective_image)
     cv2.imwrite(m[0] + '_filtered.jpg', kernelised_huang)
     cv2.imwrite(m[0] + '_dil.jpg', dil)
     cv2.imwrite(m[0] + '_threshold.jpg', thre)
+    cv2.imwrite(m[0] + '_max.jpg', max_img*255)
+    cv2.imwrite(m[0] + '_splines.jpg', sm.visualise_splines_models(thre))
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
