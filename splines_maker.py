@@ -3,39 +3,8 @@ import cv2
 from sklearn import linear_model
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import make_pipeline
-
-class Point:
-    y = None
-    x = None
-
-    def __init__(self, y, x):
-        self.y = y
-        self.x = x
-
-class Spline_Candidate:
-
-    def __init__(self):
-        self.points_list = []
-        self.predictor = []
-
-    def add_point(self, p):
-        self.points_list.append(p)
-
-    def length(self):
-        return len(self.points_list)
-
-    def get_list(self):
-        ret = []
-        for p in self.points_list:
-            ret.append([p.y, p.x])
-
-        return np.array(ret)
-
-    def save_model(self, predictor):
-        self.predictor = predictor
-
-    def get_model(self):
-        return self.predictor
+from point import Point
+from spline import Spline_Candidate
 
 class SplinesMaker:
 
@@ -46,8 +15,9 @@ class SplinesMaker:
         self.annulus_height = config.getint('Splines Section', 'splines.annulus_height')
         self.annulus_width = config.getint('Splines Section', 'splines.annulus_width')
         self.minimum_spline_points = config.getint('Splines Section', 'splines.minimum_spline_points') # TODO mozna z tym poeksperymentowac
+        self.dashed_line_gap = config.getint('Splines Section', 'splines.dashed_line_gap')
 
-    def __mark_splines(self, y, x):
+    def __mark_splines_neighborhood(self, y, x):
 
         for v in range(self.lineWidth):
             for u in range(self.lineWidth):
@@ -62,6 +32,7 @@ class SplinesMaker:
         self.max_image = np.zeros_like(img, dtype=np.int)
         self.splines_markers = np.zeros_like(img)
 
+        tmp_max_list = []
         self.max_list = []
 
         for y, row in enumerate(img):
@@ -70,19 +41,22 @@ class SplinesMaker:
                 if e>=max_value and row[x+(self.lineWidth/2)]==255:
 
                     if self.splines_markers[y][x] == 0:
-                        self.max_list.append((y, x + (self.lineWidth / 2)))
-                        self.__mark_splines(y, x + (self.lineWidth / 2))
+                        tmp_max_list.append((y, x + (self.lineWidth / 2)))
+                        self.__mark_splines_neighborhood(y, x + (self.lineWidth / 2))
 
-        self.max_list = np.array(self.max_list)
-        self.max_list = self.max_list[self.max_list[:, 1].argsort(kind='mergesort')]
-        self.max_list = self.max_list[(self.max_list[:, 0] * (-1)).argsort(kind='mergesort')]
+        tmp_max_list = np.array(tmp_max_list)
+        tmp_max_list = tmp_max_list[(tmp_max_list[:, 1]).argsort(kind='mergesort')]
+        tmp_max_list = tmp_max_list[(tmp_max_list[:, 0] * (-1)).argsort(kind='mergesort')]
 
-        for i, (y, x) in enumerate(self.max_list):
-            self.max_image[y][x] = i
+        for i, (y, x) in enumerate(tmp_max_list):
+            self.max_image[y][x] = 1
+            self.max_list.append(Point(y, x))
 
         # out *= 255 # TODO debug
 
-        return np.uint8(self.max_image>0)
+        self.max_list = np.array(self.max_list)
+
+        return np.uint8(self.max_image)
 
     def __count_sobel(self, img, y, x, r):
         cups = np.zeros(9, dtype=np.float64)
@@ -110,13 +84,11 @@ class SplinesMaker:
         self.angle = (self.angle / 20.)
         self.angle = np.uint8(self.angle)
 
-        self.max_angle_index = []
+        for p in self.max_list:
+            val = self.__count_sobel(img, p.y, p.x, 2 * self.lineWidth)
+            p.setAngle(val)
 
-        for (y, x) in self.max_list:
-            val = self.__count_sobel(img, y, x, 2 * self.lineWidth)
-            self.max_angle_index.append(val)
-
-        self.max_angle_index = np.array(self.max_angle_index)
+        pass
 
     def visualise_directions(self, img):
         orientations = 9.
@@ -129,16 +101,16 @@ class SplinesMaker:
         orientations_arr = np.arange(orientations)
         dx_arr = radius * np.cos((orientations_arr / orientations) * np.pi)
         dy_arr = radius * np.sin((orientations_arr / orientations) * np.pi)
-        for (y, x), s in zip(self.max_list, self.max_angle_index):
-            centre = tuple([y, x])
+        for p in self.max_list:
+            centre = tuple([p.y, p.x])
+            cv2.line(hog_im, (int(p.x + dx_arr[p.angle]), int(p.y + dy_arr[p.angle])),
+                     (int(p.x - dx_arr[p.angle]), int(p.y - dy_arr[p.angle])), 255)
+
+        for s in range(9):    # All possible directions
+            y = s * 20
+            x = 20
             cv2.line(hog_im, (int(x + dx_arr[s]), int(y + dy_arr[s])),
                      (int(x - dx_arr[s]), int(y - dy_arr[s])), 255)
-
-        # for s in range(9):    # All possible directions
-        #     y = s * 20
-        #     x = 20
-        #     cv2.line(hog_im, (int(x + dx_arr[s]), int(y + dy_arr[s])),
-        #              (int(x - dx_arr[s]), int(y - dy_arr[s])), 255)
 
         return hog_im
 
@@ -182,30 +154,36 @@ class SplinesMaker:
 
         still_in_game = np.ones(self.max_list.shape[0]).astype(np.bool)
 
-        sin_tab = np.sin((np.arange(0., 9.) / 10.) * np.pi)
-        cos_tab = np.cos((np.arange(0., 9.) / 10.) * np.pi)
+        sin_tab = np.sin((np.arange(0., 9.) / 9.) * np.pi)
+        cos_tab = np.cos((np.arange(0., 9.) / 9.) * np.pi)
+
+        sin_tab *= np.array([1., 1., 1., 1., 1., -1., -1., -1., -1.])
+        cos_tab *= np.array([1., 1., 1., 1., 1., -1., -1., -1., -1.])
 
         for spline_begining_index, spline_begining in enumerate(self.max_list):
 
-            if spline_begining[0] < img_height - self.bottom_border:
+            if spline_begining.y < img_height - self.bottom_border:
                 break
 
             if not still_in_game[spline_begining_index]:
                 continue
 
             b_i = spline_begining_index
-            b_y = spline_begining[0]
-            b_x = spline_begining[1]
+            b_y = spline_begining.y
+            b_x = spline_begining.x
+            b_angle = spline_begining.angle
             actual_spline = Spline_Candidate()
 
             still_in_game[b_i] = False
 
+            actual_spline.add_point(spline_begining)
+
             while True:
 
-                dw_y = self.annulus_width * sin_tab[self.max_angle_index[b_i]]
-                dw_x = self.annulus_width * cos_tab[self.max_angle_index[b_i]]
-                dh_y = self.annulus_height * cos_tab[self.max_angle_index[b_i]]
-                dh_x = self.annulus_height * sin_tab[self.max_angle_index[b_i]]
+                dw_y = self.annulus_width * sin_tab[b_angle]
+                dw_x = self.annulus_width * cos_tab[b_angle]
+                dh_y = self.annulus_height * cos_tab[b_angle]
+                dh_x = self.annulus_height * sin_tab[b_angle]
 
                 bl = Point(b_y + dw_y, b_x - dw_x)
                 br = Point(b_y - dw_y, b_x + dw_x)
@@ -214,37 +192,83 @@ class SplinesMaker:
 
                 min_y = min(b_y - dh_y + dw_y, b_y - dh_y - dw_y)
 
-                candidate = None
+                candidate = None    # candidate for next beggining
                 candidate_i = None
 
-                for p_i, (p_y, p_x) in enumerate(self.max_list[b_i:]):
+                for p_i, p in enumerate(self.max_list[b_i:]):
 
                     if not still_in_game[b_i + p_i]:
                         continue
 
-                    p = Point(p_y, p_x)
-
-                    if p_y < min_y:
+                    if p.y < min_y:
                          break
 
                     if not self._check_inside(p, bl, br, tl, tr):
                         continue
 
-                    if candidate==None or p_y<candidate.y: # TODO cos madrzjszego
+                    if candidate is None or p.y < candidate.y: # TODO cos madrzjszego
                         candidate = p
                         candidate_i = p_i + b_i
 
                     still_in_game[b_i + p_i] = False
                     actual_spline.add_point(p)
 
-                if candidate == None:
+                if candidate is None and actual_spline.length()>self.minimum_spline_points:
+                    # dashed line procedure # TODO wsadzic to w jakas jedna funkcje, zeby dalo sie wykorzystac powyzej i poniezej
+                    angles_list = actual_spline.get_angles_list()
+                    direction = np.average(angles_list[-5:])    # get last five points to get the direction
+
+                    sin_val = np.sin(direction * np.pi)
+                    cos_val = np.cos(direction * np.pi)
+
+                    if direction > 4.5:
+                        sin_val *= -1.
+                        cos_val *= -1.
+
+                    dw_y = self.annulus_width * sin_val
+                    dw_x = self.annulus_width * cos_val
+                    dh_y = self.dashed_line_gap * cos_val
+                    dh_x = self.dashed_line_gap * sin_val
+
+                    bl = Point(b_y + dw_y, b_x - dw_x)
+                    br = Point(b_y - dw_y, b_x + dw_x)
+                    tl = Point(b_y - dh_y + dw_y, b_x - dh_x - dw_x)
+                    tr = Point(b_y - dh_y - dw_y, b_x - dh_x + dw_x)
+
+                    min_y = min(b_y - dh_y + dw_y, b_y - dh_y - dw_y)
+
+                    candidate = None  # candidate for next beggining
+                    candidate_i = None
+
+                    for p_i, p in enumerate(self.max_list[b_i:]):
+
+                        if not still_in_game[b_i + p_i]:
+                            continue
+
+                        if p.y < min_y:
+                            break
+
+                        if not self._check_inside(p, bl, br, tl, tr):
+                            continue
+
+                        if candidate is None or p.y < candidate.y:  # TODO cos madrzjszego
+                            candidate = p
+                            candidate_i = p_i + b_i
+
+                        still_in_game[b_i + p_i] = False
+                        actual_spline.add_point(p)
+
+                if candidate is None:
                     break
 
                 b_y = candidate.y
                 b_x = candidate.x
+                b_i = candidate_i
 
             if (actual_spline.length()>self.minimum_spline_points):
                 self.splines_list.append(actual_spline)
+
+        pass
 
     def use_ransac(self, img):  # TODO zrobic zeby dzialalo tez na przerywanej
 
@@ -278,6 +302,13 @@ class SplinesMaker:
 
         self.compute_direction(img)
         self.connect_nearby(img)
+
+        img = np.zeros_like(img)
+
+        for spl in self.splines_list:
+            for p in spl.points_list:
+                img[p.y][p.x] = 255
+
+        cv2.imshow("splines points", img)
+
         self.use_ransac(img)
-
-

@@ -27,7 +27,5 @@ def main():
     else:
         singleImageStrategy.process(config)
 
-
-
 if __name__ == "__main__":
     main()                      # Calling proper main function

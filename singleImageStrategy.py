@@ -5,6 +5,7 @@ import numpy as np
 import re
 from adaptive_threshold import AdaptiveThreshold
 from splines_maker import SplinesMaker
+import time
 
 def process(config):
 
@@ -56,6 +57,7 @@ def process(config):
     cv2.imwrite(m[0] + '_threshold.jpg', thre)
     cv2.imwrite(m[0] + '_max.jpg', max_img*255)
     cv2.imwrite(m[0] + '_splines.jpg', sm.visualise_splines_models(thre))
+    cv2.imwrite(m[0] + '_directions.jpg', sm.visualise_directions(thre))
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
