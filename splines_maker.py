@@ -26,7 +26,6 @@ class SplinesMaker:
                 self.splines_markers[min(y + v, self.splines_markers.shape[0]-1)][max(x - u, 0)]                               = 1
                 self.splines_markers[min(y + v, self.splines_markers.shape[0]-1)][min(x + u, self.splines_markers.shape[1]-1)] = 1
 
-
     def prepare_max_list(self, img, max_value=255):
 
         self.max_image = np.zeros_like(img, dtype=np.int)
@@ -52,11 +51,9 @@ class SplinesMaker:
             self.max_image[y][x] = 1
             self.max_list.append(Point(y, x))
 
-        # out *= 255 # TODO debug
-
         self.max_list = np.array(self.max_list)
 
-        return np.uint8(self.max_image)
+        self.max_image = np.uint8(self.max_image)
 
     def __count_sobel(self, img, y, x, r):
         cups = np.zeros(9, dtype=np.float64)
@@ -89,30 +86,6 @@ class SplinesMaker:
             p.setAngle(val)
 
         pass
-
-    def visualise_directions(self, img):
-        orientations = 9.
-        sy, sx = img.shape
-        cx, cy = (8, 8)
-
-        hog_im = np.zeros_like(img)
-
-        radius = self.lineWidth  # 2 - 1
-        orientations_arr = np.arange(orientations)
-        dx_arr = radius * np.cos((orientations_arr / orientations) * np.pi)
-        dy_arr = radius * np.sin((orientations_arr / orientations) * np.pi)
-        for p in self.max_list:
-            centre = tuple([p.y, p.x])
-            cv2.line(hog_im, (int(p.x + dx_arr[p.angle]), int(p.y + dy_arr[p.angle])),
-                     (int(p.x - dx_arr[p.angle]), int(p.y - dy_arr[p.angle])), 255)
-
-        for s in range(9):    # All possible directions
-            y = s * 20
-            x = 20
-            cv2.line(hog_im, (int(x + dx_arr[s]), int(y + dy_arr[s])),
-                     (int(x - dx_arr[s]), int(y - dy_arr[s])), 255)
-
-        return hog_im
 
     def _check_inside(self, p, bl, br, tl, tr):
 
@@ -270,7 +243,7 @@ class SplinesMaker:
 
         pass
 
-    def use_ransac(self, img):  # TODO zrobic zeby dzialalo tez na przerywanej
+    def use_ransac(self, img):
 
         for spline in self.splines_list:
 
@@ -282,6 +255,50 @@ class SplinesMaker:
             model.fit(image_part[:,0].reshape(-1, 1), image_part[:, 1])
 
             spline.save_model(model)
+
+    def process(self, img):
+
+        self.prepare_max_list(img)
+        self.compute_direction(img)
+        self.connect_nearby(img)
+
+        self.use_ransac(img)
+
+        return self.visualise_splines_models(img)
+
+    def visualise_spline_points(self, img):
+
+        out = np.zeros_like(img)
+
+        for spl in self.splines_list:
+            for p in spl.points_list:
+                out[p.y][p.x] = 255
+
+        return out
+
+    def visualise_directions(self, img):
+        orientations = 9.
+        sy, sx = img.shape
+        cx, cy = (8, 8)
+
+        hog_im = np.zeros_like(img)
+
+        radius = self.lineWidth  # 2 - 1
+        orientations_arr = np.arange(orientations)
+        dx_arr = radius * np.cos((orientations_arr / orientations) * np.pi)
+        dy_arr = radius * np.sin((orientations_arr / orientations) * np.pi)
+        for p in self.max_list:
+            centre = tuple([p.y, p.x])
+            cv2.line(hog_im, (int(p.x + dx_arr[p.angle]), int(p.y + dy_arr[p.angle])),
+                     (int(p.x - dx_arr[p.angle]), int(p.y - dy_arr[p.angle])), 255)
+
+        # for s in range(9):    # All possible directions
+        #     y = s * 20
+        #     x = 20
+        #     cv2.line(hog_im, (int(x + dx_arr[s]), int(y + dy_arr[s])),
+        #              (int(x - dx_arr[s]), int(y - dy_arr[s])), 255)
+
+        return hog_im
 
     def visualise_splines_models(self, img):
 
@@ -298,17 +315,5 @@ class SplinesMaker:
 
         return out
 
-    def make_splines(self, img):
-
-        self.compute_direction(img)
-        self.connect_nearby(img)
-
-        img = np.zeros_like(img)
-
-        for spl in self.splines_list:
-            for p in spl.points_list:
-                img[p.y][p.x] = 255
-
-        cv2.imshow("splines points", img)
-
-        self.use_ransac(img)
+    def visualise_max_image(self, img):
+        return self.max_image
