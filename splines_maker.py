@@ -300,7 +300,7 @@ class SplinesMaker:
 
         return hog_im
 
-    def visualise_splines_models(self, img):
+    def visualise_splines_models(self, img, radius=None, color=None):
 
         out = np.zeros_like(img)
         y_plot = np.linspace(0, img.shape[0], img.shape[0], endpoint=False).astype(np.int)
@@ -311,9 +311,12 @@ class SplinesMaker:
 
             for y, x in zip(y_plot, x_plot):
                 if 0 <= x < img.shape[1]:
-                    out[y][x] = 255
+                    if radius is None or color is None:
+                        out[y][x] = 255
+                    else:
+                        cv2.circle(out, (x, y), radius, color=255, thickness=-1)
 
         return out
 
     def visualise_max_image(self, img):
-        return self.max_image
+        return self.max_image*255

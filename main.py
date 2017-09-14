@@ -1,7 +1,7 @@
 import cv2                      # Imported all available (probably used) libraries
 from testfile import test
 import ConfigParser
-import singleImageStrategy
+import single_image_strategy
 
 useCamera = None
 config = None
@@ -25,7 +25,7 @@ def main():
     if (useCamera):
         test()
     else:
-        singleImageStrategy.process(config)
+        single_image_strategy.process(config)
 
 if __name__ == "__main__":
     main()                      # Calling proper main function

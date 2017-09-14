@@ -21,28 +21,6 @@ class PerspectiveRemover:
 
         self.theta_hat = self.beta-self.theta
 
-    # def remove_perspective(self, img):
-    #
-    #     out = np.zeros_like(img)
-    #
-    #     for v in range(self.height):
-    #
-    #         angle = np.pi/2. - self.beta - self.theta_hat + (float(v)/self.height)*2.0*self.beta
-    #         y = self.h * self.h_factor * np.tan(angle)
-    #
-    #         y_index = int(self.out_height - y)
-    #         # print y_index
-    #
-    #         for u in range(self.width):
-    #             x = y * np.tan(-self.alpha + (float(u)/self.width) * 2.0 * self.alpha) + self.width/2
-    #
-    #             if y_index < self.out_height and y_index >= 0 and int(x) < self.out_width:
-    #                 out[int(y_index)][int(x)] = img[self.height - v-1][u]
-    #
-    #         # print angle, (angle/6.28) * 350, y
-    #
-    #     return out
-
     def process(self, img):
 
         self.out_height = self.out_height_factor * img.shape[0]
@@ -68,6 +46,9 @@ class PerspectiveRemover:
             y_index = int(self.out_height - y - 1)
             v_index = self.height - v - 1.
 
+            if int(v_index) < 0 or int(v_index) + 1 >= self.height:
+                continue
+
             for x in range(1, self.out_width-1):
 
                 u = ((np.arctan(float(x - self.width/2)/y_eq) + self.alpha) / (2. * self.alpha)) * self.width
@@ -79,5 +60,35 @@ class PerspectiveRemover:
                     val += img[int(v_index)][int(u)] * (1.-(v_index % 1.0)) * (u%1.0)
                     val += img[int(v_index)][int(u)+1] * (1.-(v_index % 1.0)) * (1. - (u % 1.0))
                     out[y_index][x] = int(val)
+
+        return out
+
+    def processReverse(self, img):
+
+        if img.shape[0] != self.out_height or img.shape[1] != self.out_width:
+            raise RuntimeWarning("Wrong shape of image")
+
+        out = np.zeros((self.height, self.width), dtype=np.uint8)
+
+        for v in range(self.height):
+
+            v_index = self.height - 1 - int(v)
+
+            angle = np.pi/2. - self.beta - self.theta_hat + (float(v)/float(self.height)) * 2.0 * self.beta
+            y = self.h * self.h_factor * np.tan(angle)
+
+            y_index = int(self.out_height - y) + self.gap
+
+            if y_index < 0:
+                break
+
+            if y_index >= self.out_height:
+                continue
+
+            for u in range(self.width):
+                x = y * np.tan(-self.alpha + (float(u)/self.width) * 2.0 * self.alpha) + self.width/2
+
+                if y_index >= 0 and y_index < self.out_height and int(x) >=0 and int(x) < self.out_width:
+                    out[v_index][u] = img[y_index][int(x)]
 
         return out
