@@ -37,7 +37,7 @@ class SplinesMaker:
         for y, row in enumerate(img):
             for x, e in enumerate(row):
 
-                if e>=max_value and row[x+(self.lineWidth/2)]==255:
+                if e>=max_value and (x+(self.lineWidth/2))<img.shape[1] and row[x+(self.lineWidth/2)]>=max_value:
 
                     if self.splines_markers[y][x] == 0:
                         tmp_max_list.append((y, x + (self.lineWidth / 2)))
@@ -49,6 +49,7 @@ class SplinesMaker:
 
         for i, (y, x) in enumerate(tmp_max_list):
             self.max_image[y][x] = 1
+            cv2.circle(self.max_image, (x, y), 5, color=1, thickness=-1)
             self.max_list.append(Point(y, x))
 
         self.max_list = np.array(self.max_list)
@@ -249,10 +250,12 @@ class SplinesMaker:
 
             # image_part = self.max_list[np.logical_and(self.max_list[:,1] < spline_beginning_x+100, self.max_list[:,1] > 0)]# spline_beginning_x-100)]
             image_part = spline.get_list()
-            ransac = linear_model.RANSACRegressor() # TODO mozna sie parametrami pobawic
+            ransac = linear_model.RANSACRegressor(residual_threshold=5) # TODO mozna sie parametrami pobawic
 
             model = make_pipeline(PolynomialFeatures(3), ransac) # TODO moze polynomial features 2 a nie 3
             model.fit(image_part[:,0].reshape(-1, 1), image_part[:, 1])
+
+            print np.concatenate(([model._final_estimator.estimator_.intercept_], model._final_estimator.estimator_.coef_[1:]))
 
             spline.save_model(model)
 
