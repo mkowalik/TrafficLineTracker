@@ -5,6 +5,7 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import make_pipeline
 from point import Point
 from spline import Spline_Candidate
+from timing import timing
 
 class SplinesMaker:
 
@@ -252,7 +253,7 @@ class SplinesMaker:
 
             # image_part = self.max_list[np.logical_and(self.max_list[:,1] < spline_beginning_x+100, self.max_list[:,1] > 0)]# spline_beginning_x-100)]
             image_part = spline.get_list()
-            ransac = linear_model.RANSACRegressor(residual_threshold=5) # TODO mozna sie parametrami pobawic
+            ransac = linear_model.RANSACRegressor(residual_threshold=5, max_trials=100) # TODO mozna sie parametrami pobawic
 
             model = make_pipeline(PolynomialFeatures(3), ransac) # TODO moze polynomial features 2 a nie 3
             model.fit(image_part[:,0].reshape(-1, 1), image_part[:, 1])
@@ -261,6 +262,7 @@ class SplinesMaker:
 
             spline.save_model(model)
 
+    @timing
     def process(self, img):
 
         self.prepare_max_list(img)
