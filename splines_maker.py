@@ -15,6 +15,7 @@ class SplinesMaker:
         self.annulus_height = config.getint('Splines Section', 'splines.annulus_height')
         self.annulus_width = config.getint('Splines Section', 'splines.annulus_width')
         self.minimum_spline_points = config.getint('Splines Section', 'splines.minimum_spline_points') # TODO mozna z tym poeksperymentowac
+        self.minimum_dashed_points = config.getint('Splines Section', 'splines.minimum_dashed_points') # TODO mozna z tym poeksperymentowac
         self.dashed_line_gap = config.getint('Splines Section', 'splines.dashed_line_gap')
 
     def __mark_splines_neighborhood(self, y, x):
@@ -187,7 +188,7 @@ class SplinesMaker:
                     still_in_game[b_i + p_i] = False
                     actual_spline.add_point(p)
 
-                if candidate is None and actual_spline.length()>self.minimum_spline_points:
+                if candidate is None and actual_spline.length()>self.minimum_dashed_points:
                     # dashed line procedure # TODO wsadzic to w jakas jedna funkcje, zeby dalo sie wykorzystac powyzej i poniezej
                     angles_list = actual_spline.get_angles_list()
                     direction = np.average(angles_list[-5:])    # get last five points to get the direction
@@ -231,6 +232,7 @@ class SplinesMaker:
 
                         still_in_game[b_i + p_i] = False
                         actual_spline.add_point(p)
+                        break
 
                 if candidate is None:
                     break

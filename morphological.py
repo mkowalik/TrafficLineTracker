@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+from timing import timing
 
 class MorphologicalOperations:
 
@@ -7,6 +8,7 @@ class MorphologicalOperations:
         self.dilation_iterations = config.getint('Morphological Operations Section', 'threshold.dilation_iterations')
         self.opening_iterations = config.getint('Morphological Operations Section', 'threshold.opening_iterations')
 
+    @timing
     def proceess(self, img, kernel=np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]], dtype=np.uint8)):
 
         out = np.copy(img)

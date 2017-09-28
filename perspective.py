@@ -1,4 +1,5 @@
 import numpy as np
+from timing import timing
 
 class PerspectiveRemover:
 
@@ -21,6 +22,7 @@ class PerspectiveRemover:
 
         self.theta_hat = self.beta-self.theta
 
+    @timing
     def process(self, img):
 
         self.out_height = self.out_height_factor * img.shape[0]
@@ -60,6 +62,7 @@ class PerspectiveRemover:
                     val += img[int(v_index)][int(u)] * (1.-(v_index % 1.0)) * (u%1.0)
                     val += img[int(v_index)][int(u)+1] * (1.-(v_index % 1.0)) * (1. - (u % 1.0))
                     out[y_index][x] = int(val)
+                    # out[y_index][x] = np.ndarray.astype(val, np.int)
 
         return out
 

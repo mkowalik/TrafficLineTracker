@@ -1,37 +1,29 @@
 import numpy as np
 import cv2
+from matplotlib import pyplot as plt
+from timing import timing
 
 class AdaptiveThreshold:
 
     def __init__(self, config):
 
         self.k = config.getfloat('Adaptive Threshold Section', 'threshold.k')
-        self.c = config.getint('Adaptive Threshold Section', 'threshold.c')
 
+    @timing
     def process(self, img):
 
-        out = np.zeros_like(img)
+        max_val = np.max(img)
 
-        max_val = None
+        t = float(max_val) / self.k
 
-        for y, row in enumerate(img):
+        test = 255 - img
+        th, out = cv2.threshold(test, 0, 250, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+        th = 255-th
+        out = 255 - out
 
-            for x, e in enumerate(row):
-
-                if y % (self.c/2) == 0 and x % (self.c/2) == 0:
-                    y_min = max(0, y)
-                    y_max = min(img.shape[0], y+self.c)
-                    x_min = max(0, x)
-                    x_max = min(img.shape[1], x+self.c)
-
-                    test = img[y_min:y_max,x_min:x_max].ravel()
-
-                    max_val = np.max(test)
-
-                t = float(max_val)/self.k
-                if (e > t):
-                    out[y][x] = 255
-                else:
-                    out[y][x] = 0
+        # t = 37
+        # _, out = cv2.threshold(img, t, 255, cv2.THRESH_BINARY)
+        _, out = cv2.threshold(out, t, 255, cv2.THRESH_BINARY)
+        print th, t
 
         return out

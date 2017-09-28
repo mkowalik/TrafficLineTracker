@@ -1,5 +1,6 @@
 import numpy as np
 from morphological import MorphologicalOperations
+from timing import timing
 
 class NoPerspectiveSideEdgesEraser:
 
@@ -35,6 +36,7 @@ class NoPerspectiveSideEdgesEraser:
     def __process_morphological_operations(self, img):
         return self.mo.erode(img, iterations=6)
 
+    @timing
     def process(self, img, default_value=1, border_value=0):
 
         self.out_height = img.shape[0]

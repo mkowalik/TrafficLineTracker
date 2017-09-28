@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import re
 import time
+from matplotlib import pyplot as plt
 
 from perspective            import PerspectiveRemover
 from adaptive_threshold     import AdaptiveThreshold
@@ -37,6 +38,15 @@ def process(config):
     print "And go..."
 
     removed_perspective =       pr.process(img)
+
+    # plt.hist(removed_perspective.flatten(), 255, [1, 256], color='r')
+    # plt.xlim([1, 256])
+    # plt.show()
+    # removed_perspective = cv2.equalizeHist(removed_perspective)
+    # plt.hist(removed_perspective.flatten(), 255, [1, 256], color='r')
+    # plt.xlim([1, 256])
+    # plt.show()
+
     print "Perspective done"
     # kernelised_GOLD =         kg.process(removed_perspective)
     # kernelised_huang =          kh.process(removed_perspective)
@@ -56,9 +66,9 @@ def process(config):
     splines_visualisation               = sm.visualise_splines_models(thresholded, lineWidth/2, 255)
     splines_visualisation_perspective   = pr.processReverse(splines_visualisation)
     line_mask                           = ic.convert_to_one_color(splines_visualisation_perspective, (0, 0, 255))
-    merged_with_mask_perspective               = ic.merge_with_mask(imgColor, line_mask)
+    merged_with_mask_perspective        = ic.merge_with_mask(imgColor, line_mask)
 
-    # # cv2.imshow("imgHuang", kernelised_huang)
+    # cv2.imshow("imgHuang", kernelised_huang)
     cv2.imshow("removed_perspective", removed_perspective)
     cv2.imshow("kernelised_huang", kernelised_merge)
     cv2.imshow("dil", dil)
@@ -71,16 +81,16 @@ def process(config):
     cv2.imshow("merged_with_mask_perspective", merged_with_mask_perspective)
 
     m = re.split(".jpg", full_path)
-    cv2.imwrite(m[0] + '_removed_perspective.jpg', removed_perspective)
-    cv2.imwrite(m[0] + '_kernelised_merge.jpg', kernelised_merge)
-    cv2.imwrite(m[0] + '_dil.jpg', dil)
-    cv2.imwrite(m[0] + '_thresholded.jpg', thresholded)
-    cv2.imwrite(m[0] + '_thresholded_dil.jpg', thresholded_dil)
-    cv2.imwrite(m[0] + '_max.jpg', sm.visualise_max_image(thresholded))
-    cv2.imwrite(m[0] + '_splines.jpg', sm.visualise_splines_models(thresholded, lineWidth/2, 255))
-    cv2.imwrite(m[0] + '_directions.jpg', sm.visualise_directions(thresholded))
+    cv2.imwrite(m[0] + '_1removed_perspective.jpg', removed_perspective)
+    cv2.imwrite(m[0] + '_2kernelised_merge.jpg', kernelised_merge)
+    cv2.imwrite(m[0] + '_3dil.jpg', dil)
+    cv2.imwrite(m[0] + '_4thresholded.jpg', thresholded)
+    cv2.imwrite(m[0] + '_5thresholded_dil.jpg', thresholded_dil)
+    cv2.imwrite(m[0] + '_6max.jpg', sm.visualise_max_image(thresholded))
+    cv2.imwrite(m[0] + '_7splines.jpg', sm.visualise_splines_models(thresholded, lineWidth/2, 255))
+    cv2.imwrite(m[0] + '_8directions.jpg', sm.visualise_directions(thresholded))
 
-    cv2.imwrite(m[0] + '_merged_with_mask_perspective.jpg', merged_with_mask_perspective)
+    cv2.imwrite(m[0] + '_9merged_with_mask_perspective.jpg', merged_with_mask_perspective)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()

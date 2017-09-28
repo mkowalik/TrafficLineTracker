@@ -1,4 +1,5 @@
 import numpy as np
+from timing import timing
 
 class OneDimKernelMerge:
 
@@ -7,6 +8,7 @@ class OneDimKernelMerge:
         self.lineWidth = config.getint('Low Level Kernel Section', 'kernel.width')
         self.kernelSize = 2*self.lineWidth
 
+    @timing
     def process(self, img):
 
         out = np.zeros_like(img)
